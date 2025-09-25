@@ -1,0 +1,1021 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AuroraOS 3.6</title>
+<style>
+  :root{
+    --accent:#7bd1ff;
+    --accent-2:#b48cff;
+    --glass: rgba(255,255,255,0.12);
+    --glass-2: rgba(255,255,255,0.06);
+    --task-h:56px;
+    --font: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:var(--font);background:linear-gradient(180deg,#061a23,#083041);color:#e9fbff;overflow:hidden;-webkit-font-smoothing:antialiased}
+  /* wallpaper & aurora overlay */
+  #wallpaper{position:fixed;inset:0;background-size:cover;background-position:center;filter:brightness(.98);z-index:0}
+  .aurora-overlay{position:fixed;inset:0;pointer-events:none;background:
+    radial-gradient(circle at 12% 30%, rgba(123,209,255,0.06) 0 12%, transparent 28%),
+    radial-gradient(circle at 78% 68%, rgba(180,120,255,0.04) 0 18%, transparent 40%);mix-blend-mode:screen;z-index:1}
+  /* splash */
+  #splash{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:10000;background:linear-gradient(180deg,#021d25,#04303c)}
+  .splash-logo{font-size:48px;font-weight:900;letter-spacing:2px;margin-bottom:12px}
+  .splash-sub{opacity:.9;margin-bottom:18px}
+  .splash-progress{width:360px;height:12px;border-radius:8px;background:rgba(255,255,255,0.05);overflow:hidden}
+  .splash-progress > div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .28s}
+  /* desktop */
+  #desktop{position:relative;z-index:2;padding:22px;padding-bottom:calc(var(--task-h)+32px);height:100%;display:flex;flex-wrap:wrap;align-content:flex-start;gap:12px}
+  .icon{width:96px;text-align:center;cursor:pointer;margin:6px;user-select:none;transition:transform .14s,box-shadow .14s}
+  .icon:hover{transform:translateY(-6px)}
+  .icon .img{width:72px;height:72;border-radius:12px;background:linear-gradient(135deg,#9be7ff,#7bd1ff);display:flex;align-items:center;justify-content:center;font-weight:800;color:#023047;box-shadow:0 18px 36px rgba(2,48,71,.2)}
+  .icon .label{font-size:13px;margin-top:8px;color:inherit}
+  /* windows (glass) */
+  .win{position:absolute;width:640px;height:420px;border-radius:12px;background:var(--glass);backdrop-filter:blur(10px) saturate(1.08);border:1px solid rgba(255,255,255,0.06);box-shadow:0 28px 60px rgba(2,16,26,0.7);overflow:hidden;display:flex;flex-direction:column;transition:transform .12s,opacity .12s}
+  .win.minimized{display:none}
+  .title{height:52px;display:flex;align-items:center;padding:0 12px;gap:12px;font-weight:700;cursor:grab}
+  .title .title-text{flex:1;color:#002b3a}
+  .controls{display:flex;gap:8px}
+  .btn{width:36px;height:36px;border-radius:8px;background:var(--glass-2);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04)}
+  .content{padding:12px;height:calc(100% - 52px);overflow:auto;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));color:#012b35}
+  /* taskbar */
+  #taskbar{position:fixed;left:12px;right:12px;bottom:12px;height:var(--task-h);border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));display:flex;align-items:center;gap:12px;padding:8px 12px;backdrop-filter:blur(8px);z-index:900}
+  #startBtn{width:56px;height:40px;border-radius:10px;background:linear-gradient(180deg,var(--accent),#60bfff);display:flex;align-items:center;justify-content:center;font-weight:900;color:#022233;cursor:pointer;user-select:none}
+  #pinned{display:flex;gap:8px;align-items:center}
+  .pinned-btn{height:40px;min-width:40px;border-radius:8px;padding:6px 10px;background:rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  #tasklist{display:flex;gap:8px;flex:1;align-items:center}
+  .task-mini{height:40px;min-width:88px;border-radius:8px;padding:6px 10px;background:rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px;cursor:pointer}
+  #tray{display:flex;gap:8px;align-items:center}
+  #clock{font-weight:800}
+  /* start menu */
+  #startMenu{position:fixed;left:12px;bottom:calc(12px + var(--task-h));width:300px;background:rgba(255,255,255,0.04);backdrop-filter:blur(8px);border-radius:12px;padding:12px;display:none;box-shadow:0 18px 60px rgba(0,0,0,.45);z-index:950}
+  #startMenu h4{margin:0 0 8px 0}
+  .startItem{padding:8px;border-radius:8px;cursor:pointer}
+  .startItem:hover{background:rgba(255,255,255,0.02)}
+  /* small responsive */
+  @media (max-width:980px){ .win{width:92%;height:66%} }
+  /* button resets */
+  button,input,select,textarea{font:inherit}
+</style>
+</head>
+<body>
+  <div id="wallpaper"></div>
+  <div class="aurora-overlay"></div>
+
+  <!-- SPLASH -->
+  <div id="splash" aria-hidden="false">
+    <div class="splash-logo">AuroraOS</div>
+    <div class="splash-sub">Carregando módulos do sistema...</div>
+    <div class="splash-progress"><div id="splashBar"></div></div>
+  </div>
+
+  <!-- DESKTOP -->
+  <div id="desktop" aria-hidden="true">
+    <!-- Icons -->
+    <div class="icon" data-app="files"><div class="img">F</div><div class="label">Arquivos</div></div>
+    <div class="icon" data-app="player"><div class="img">▶</div><div class="label">Player</div></div>
+    <div class="icon" data-app="gallery"><div class="img">🖼</div><div class="label">Galeria</div></div>
+    <div class="icon" data-app="notepad"><div class="img">N</div><div class="label">Notepad</div></div>
+    <div class="icon" data-app="browser"><div class="img">W</div><div class="label">Navegador</div></div>
+    <div class="icon" data-app="calc"><div class="img">Σ</div><div class="label">Calculadora</div></div>
+    <div class="icon" data-app="terminal"><div class="img">⌘</div><div class="label">Terminal</div></div>
+    <div class="icon" data-app="snake"><div class="img">♪</div><div class="label">Snake</div></div>
+    <div class="icon" data-app="personalize"><div class="img">✦</div><div class="label">Personalizar</div></div>
+  </div>
+
+  <!-- TASKBAR -->
+  <div id="taskbar">
+    <div id="startBtn" title="Iniciar">☼</div>
+    <div id="pinned">
+      <div class="pinned-btn" data-app="files" title="Arquivos">📁</div>
+      <div class="pinned-btn" data-app="player" title="Player">🎬</div>
+      <div class="pinned-btn" data-app="browser" title="Navegador">🌐</div>
+    </div>
+    <div id="tasklist" role="list"></div>
+    <div id="tray">
+      <button id="animToggle" title="Animações">⚡</button>
+      <button id="themeToggle" title="Tema">🌓</button>
+      <div id="clock">00:00</div>
+      <div style="width:8px"></div>
+    </div>
+  </div>
+
+  <!-- START MENU -->
+  <div id="startMenu">
+    <h4>AuroraOS</h4>
+    <div class="startItem" data-launch="notepad">Notepad</div>
+    <div class="startItem" data-launch="files">Arquivos</div>
+    <div class="startItem" data-launch="player">Player</div>
+    <div class="startItem" data-launch="gallery">Galeria</div>
+    <div class="startItem" data-launch="browser">Navegador</div>
+    <div class="startItem" data-launch="calc">Calculadora</div>
+    <hr/>
+    <div class="startItem" data-launch="personalize">Personalizar</div>
+    <div class="startItem" data-launch="prefs">Configurações</div>
+  </div>
+
+  <!-- TEMPLATES -->
+  <template id="tmpl-files">
+    <div class="win" data-app="files">
+      <div class="title"><div class="title-text">Explorador de Arquivos</div><div class="controls"><div class="btn" data-action="min">🗕</div><div class="btn" data-action="max">⬜</div><div class="btn" data-action="close">✖</div></div></div>
+      <div class="content">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="file" id="pickerFiles" multiple />
+          <button id="savePicker">Salvar no Aurora</button>
+          <button id="clearStorage">Limpar Storage</button>
+        </div>
+        <div id="filesList">(carregando...)</div>
+        <small style="opacity:.7">Arquivos são salvos em IndexedDB. Evite vídeos gigantes.</small>
+      </div>
+    </div>
+  </template>
+
+  <template id="tmpl-player">
+    <div class="win" data-app="player">
+      <div class="title"><div class="title-text">Player Universal</div><div class="controls"><div class="btn" data-action="min">🗕</div><div class="btn" data-action="max">⬜</div><div class="btn" data-action="close">✖</div></div></div>
+      <div class="content">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="file" id="pickerMedia" accept="video/*,audio/*,image/*" />
+          <button id="saveMedia">Salvar no Aurora</button>
+        </div>
+        <div id="playerArea" style="min-height:160px;background:#000;color:#fff;display:flex;align-items:center;justify-content:center">Nenhum arquivo</div>
+      </div>
+    </div>
+  </template>
+
+  <template id="tmpl-notepad">
+    <div class="win" data-app="notepad">
+      <div class="title"><div class="title-text">Notepad</div><div class="controls"><div class="btn" data-action="min">🗕</div><div class="btn" data-action="max">⬜</div><div class="btn" data-action="close">✖</div></div></div>
+      <div class="content">
+        <div style="display:flex;gap:8px;margin-bottom:8px"><input id="noteName" placeholder="nome.txt" style="flex:1"/><button id="saveNote">Salvar</button><button id="loadNote">Carregar</button></div>
+        <textarea id="noteArea" style="width:100%;height:70%"></textarea>
+      </div>
+    </div>
+  </template>
+
+  <template id="tmpl-browser">
+    <div class="win" data-app="browser">
+      <div class="title"><div class="title-text">Navegador</div><div class="controls"><div class="btn" data-action="min">🗕</div><div class="btn" data-action="max">⬜</div><div class="btn" data-action="close">✖</div></div></div>
+      <div class="content">
+        <div style="display:flex;gap:8px;margin-bottom:8px"><input id="urlInput" placeholder="https://example.com" style="flex:1"/><button id="btnGo">Abrir</button></div>
+        <iframe id="browserFrame" src="about:blank" style="width:100%;height:72%;border:1px solid rgba(0,0,0,0.06)"></iframe>
+      </div>
+    </div>
+  </template>
+
+  <template id="tmpl-terminal">
+    <div class="win" data-app="terminal">
+      <div class="title"><div class="title-text">Terminal</div><div class="controls"><div class="btn" data-action="min">🗕</div><div class="btn" data-action="max">⬜</div><div class="btn" data-action="close">✖</div></div></div>
+      <div class="content">
+        <div id="termOut" style="height:68%;overflow:auto;background:#021214;padding:8px;border-radius:6px;margin-bottom:8px"></div>
+        <input id="termIn" placeholder="Comandos: help, ls, cat <nome>, rm <nome>, echo <texto>" style="width:100%"/>
+      </div>
+    </div>
+  </template>
+
+  <template id="tmpl-calc">
+    <div class="win" data-app="calc">
+      <div class="title"><div class="title-text">Calculadora</div><div class="controls"><div class="btn" data-action="min">🗕</div><div class="btn" data-action="max">⬜</div><div class="btn" data-action="close">✖</div></div></div>
+      <div class="content">
+        <input id="calcDisplay" readonly style="width:100%;padding:8px;font-size:18px;margin-bottom:8px;background:white;color:#012b35"/>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+          <button class="cbtn">7</button><button class="cbtn">8</button><button class="cbtn">9</button><button class="cbtn">/</button>
+          <button class="cbtn">4</button><button class="cbtn">5</button><button class="cbtn">6</button><button class="cbtn">*</button>
+          <button class="cbtn">1</button><button class="cbtn">2</button><button class="cbtn">3</button><button class="cbtn">-</button>
+          <button class="cbtn">0</button><button class="cbtn">.</button><button id="calcEq">=</button><button class="cbtn">+</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="tmpl-personalize">
+    <div class="win" data-app="personalize">
+      <div class="title"><div class="title-text">Personalizar</div><div class="controls"><div class="btn" data-action="min">🗕</div><div class="btn" data-action="max">⬜</div><div class="btn" data-action="close">✖</div></div></div>
+      <div class="content">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <input type="file" id="wallPicker" accept="image/*"/>
+          <button id="setWall">Definir</button>
+          <button id="resetWall">Restaurar</button>
+        </div>
+        <div><label><input type="checkbox" id="reduceAnim"/> Reduzir animações</label></div>
+        <div style="margin-top:12px"><button id="clearAllDB">Limpar todos arquivos guardados</button></div>
+      </div>
+    </div>
+  </template>
+
+  <!-- SNAKE minimal -->
+  <template id="tmpl-snake">
+    <div class="win" data-app="snake">
+      <div class="title"><div class="title-text">Snake</div><div class="controls"><div class="btn" data-action="min">🗕</div><div class="btn" data-action="max">⬜</div><div class="btn" data-action="close">✖</div></div></div>
+      <div class="content">
+        <canvas id="snakeCanvas" width="320" height="240" style="background:#fff;border:1px solid #ccc"></canvas>
+        <div style="margin-top:8px"><button id="snakeStart">Start</button> <button id="snakeStop">Stop</button></div>
+      </div>
+    </div>
+  </template>
+
+<script>
+/* 
+
+/* ---------- IndexedDB helpers ---------- */
+const DB_NAME='AuroraDB_v1', STORE='files';
+function openDB(){ return new Promise((res,rej)=>{
+  const r=indexedDB.open(DB_NAME,1);
+  r.onupgradeneeded = e => { const db=e.target.result; if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE,{keyPath:'name'}); };
+  r.onsuccess = e => res(e.target.result);
+  r.onerror = e => rej(e.target.error);
+}); }
+const dbReady = openDB();
+
+async function putFile(name,type,data){
+  const db = await dbReady;
+  return new Promise((res,rej)=>{
+    const tx = db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put({ name, type, data, ts: Date.now() });
+    tx.oncomplete = ()=> res();
+    tx.onerror = ()=> rej(tx.error);
+  });
+}
+async function getAll(){ const db=await dbReady; return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readonly'); const r=tx.objectStore(STORE).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); });}
+async function getOne(name){ const db=await dbReady; return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readonly'); const r=tx.objectStore(STORE).get(name); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });}
+async function delOne(name){ const db=await dbReady; return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).delete(name); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); });}
+async function clearAll(){ const db=await dbReady; return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).clear(); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); });}
+
+/* ---------- UI state ---------- */
+let z=300;
+const windows = {}; // id->{el,task}
+const desktop = document.getElementById('desktop');
+const splash = document.getElementById('splash');
+const splashBar = document.getElementById('splashBar');
+const wallpaperEl = document.getElementById('wallpaper');
+const startMenu = document.getElementById('startMenu');
+const tasklist = document.getElementById('tasklist');
+const clockEl = document.getElementById('clock');
+let reduceAnimations = false;
+
+/* ---------- Boot sequence ---------- */
+function synthBoot(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = ctx.currentTime;
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(520, now); g.gain.setValueAtTime(0, now);
+    o.connect(g); g.connect(ctx.destination); o.start(now);
+    g.gain.linearRampToValueAtTime(0.08, now+0.02); o.frequency.linearRampToValueAtTime(780, now+0.18);
+    g.gain.linearRampToValueAtTime(0.001, now+0.5); o.stop(now+0.55);
+    const o2=ctx.createOscillator(), g2=ctx.createGain();
+    o2.type='triangle'; o2.frequency.setValueAtTime(420, now+0.66); g2.gain.setValueAtTime(0, now+0.66);
+    o2.connect(g2); g2.connect(ctx.destination); o2.start(now+0.66); g2.gain.linearRampToValueAtTime(0.06, now+0.68); o2.stop(now+1.05);
+  }catch(e){}
+}
+function boot(){
+  synthBoot();
+  let p=0;
+  const t = setInterval(()=>{ p += Math.random()*18 + 8; if(p>100) p=100; splashBar.style.width = p+'%'; if(p>=100){ clearInterval(t); setTimeout(()=>{ splash.style.transition='opacity .6s'; splash.style.opacity=0; setTimeout(()=>{ splash.remove(); desktop.removeAttribute('aria-hidden'); },700); },400); } }, 230);
+}
+window.addEventListener('load', ()=>{
+  // restore wallpaper from DB if exists
+  dbReady.then(async ()=>{ const item = await getOne('__wallpaper__'); if(item && item.data) wallpaperEl.style.backgroundImage = `url("${item.data}")`; else wallpaperEl.style.backgroundImage = defaultWall(); });
+  boot(); initClock();
+});
+
+/* ---------- default wallpaper ---------- */
+function defaultWall(){ return 'data:image/svg+xml;utf8,'+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='1600' height='900'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='#073a5f'/><stop offset='1' stop-color='#0b2b3a'/></linearGradient></defs><rect width='100%' height='100%' fill='url(%23g)'/></svg>`);}
+
+/* ---------- Clock ---------- */
+function initClock(){ updateClock(); setInterval(updateClock,1000); }
+function updateClock(){ const d=new Date(); clockEl.textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+
+/* ---------- Window management ---------- */
+function spawnWindow(templateId, appId, left=120, top=90){
+  if(windows[appId] && windows[appId].el){ // already open: bring to front and return
+    const w = windows[appId].el; w.style.display='flex'; w.style.zIndex = ++z; return w;
+  }
+  const tpl = document.getElementById(templateId); if(!tpl) return null;
+  const node = tpl.content.firstElementChild.cloneNode(true);
+  node.style.left = left + 'px'; node.style.top = top + 'px'; node.style.zIndex = ++z;
+  document.body.appendChild(node);
+  const win = node;
+  // drag
+  const title = win.querySelector('.title');
+  let ox=0,oy=0,drag=false;
+  title.addEventListener('pointerdown', e=>{ drag=true; ox=e.clientX-win.offsetLeft; oy=e.clientY-win.offsetTop; win.style.zIndex = ++z; title.setPointerCapture(e.pointerId); });
+  document.addEventListener('pointermove', (e)=>{ if(!drag) return; win.style.left = (e.clientX-ox)+'px'; win.style.top=(e.clientY-oy)+'px'; });
+  document.addEventListener('pointerup', ()=>drag=false);
+  // controls
+  win.querySelectorAll('.btn').forEach(b=>{
+    b.addEventListener('click', async (ev)=>{
+      const action = b.getAttribute('data-action');
+      if(action==='min') { win.style.display='none'; }
+      else if(action==='close'){ win.remove(); if(windows[appId] && windows[appId].task){ windows[appId].task.remove(); delete windows[appId]; } }
+      else if(action==='max'){ toggleMax(win); }
+    });
+  });
+  // task button
+  const tbtn = document.createElement('div'); tbtn.className='task-mini'; tbtn.textContent = win.querySelector('.title .title-text').textContent;
+  tbtn.addEventListener('click', ()=>{ if(win.style.display==='none') win.style.display='flex'; win.style.zIndex = ++z; });
+  tasklist.appendChild(tbtn);
+  windows[appId] = { el: win, task: tbtn, id: appId };
+  return win;
+}
+function toggleMax(win){
+  if(!win.dataset.maxed){
+    win.dataset.prev = JSON.stringify({left:win.style.left, top:win.style.top, width:win.style.width, height:win.style.height});
+    win.style.left='12px'; win.style.top='12px'; win.style.width = `calc(100% - 24px)`; win.style.height = `calc(100% - ${parseInt(getComputedStyle(document.getElementById('taskbar')).height)+36}px)`; win.dataset.maxed='1';
+  } else {
+    const p = JSON.parse(win.dataset.prev); win.style.left = p.left; win.style.top = p.top; win.style.width = p.width; win.style.height = p.height; delete win.dataset.maxed;
+  }
+}
+
+/* ---------- App wiring ---------- */
+/* Files (Explorer) */
+async function openFilesApp(){
+  if(windows['files'] && windows['files'].el){
+    windows['files'].el.style.display='flex';
+    windows['files'].el.style.zIndex=++z;
+    refreshFiles();
+    return;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = `<div class="win" data-app="files">
+    <div class="title">
+      <div class="title-text">Explorer</div>
+      <div class="controls">
+        <div class="btn" data-action="min">🗕</div>
+        <div class="btn" data-action="max">⬜</div>
+        <div class="btn" data-action="close">✖</div>
+      </div>
+    </div>
+    <div class="content">
+      <input type="file" id="pickerFiles" multiple>
+      <button id="savePicker">Salvar</button>
+      <button id="clearStorage">Limpar</button>
+      <div id="filesList" style="margin-top:8px; max-height:300px; overflow:auto;"></div>
+    </div>
+  </div>`;
+  const win = wrapper.firstElementChild;
+  win.style.left='200px';
+  win.style.top='150px';
+  win.style.zIndex = ++z;
+  document.body.appendChild(win);
+
+  // controlar minimizar, maximizar e fechar
+  win.querySelectorAll('.btn').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const a = b.getAttribute('data-action');
+      if(a==='min') win.style.display='none';
+      else if(a==='close'){
+        win.remove();
+        if(windows['files'] && windows['files'].task){
+          windows['files'].task.remove();
+          delete windows['files'];
+        }
+      } else if(a==='max') toggleMax(win);
+    });
+  });
+
+  const tbtn = document.createElement('div');
+  tbtn.className='task-mini';
+  tbtn.textContent='Explorer';
+  tbtn.addEventListener('click', ()=>{
+    if(win.style.display==='none') win.style.display='flex';
+    win.style.zIndex=++z;
+    refreshFiles();
+  });
+  tasklist.appendChild(tbtn);
+  windows['files'] = { el: win, task: tbtn };
+
+  const picker = win.querySelector('#pickerFiles');
+  const saveBtn = win.querySelector('#savePicker');
+  const clearBtn = win.querySelector('#clearStorage');
+  const listDiv = win.querySelector('#filesList');
+
+  // função de refresh
+  async function refreshFiles(){
+    listDiv.innerHTML='Carregando...';
+    const all = await getAll();
+    if(all.length===0){ listDiv.textContent='(nenhum arquivo salvo)'; return; }
+    listDiv.innerHTML='';
+    all.sort((a,b)=>b.ts-a.ts);
+    all.forEach(m=>{
+      const r = document.createElement('div');
+      r.style.display='flex';
+      r.style.justifyContent='space-between';
+      r.style.alignItems='center';
+      r.style.padding='6px 0';
+
+      const left = document.createElement('div');
+      left.innerHTML=`<strong>${m.name}</strong><div style="font-size:12px;opacity:.75">${m.type}</div>`;
+
+      const actions = document.createElement('div');
+      const open = document.createElement('button');
+      open.textContent='Abrir';
+      open.onclick=()=>openSaved(m.name);
+
+      const del = document.createElement('button');
+      del.textContent='Excluir';
+      del.onclick=async ()=>{
+        if(confirm('Excluir '+m.name+'?')){
+          await delOne(m.name);
+          refreshFiles();
+        }
+      };
+
+      actions.appendChild(open);
+      actions.appendChild(del);
+      r.appendChild(left);
+      r.appendChild(actions);
+      listDiv.appendChild(r);
+    });
+  }
+
+  async function openSaved(name){
+    const item = await getOne(name);
+    if(!item) return alert('Não encontrado');
+    if(item.type.startsWith('image/')){
+      openGalleryApp();
+      setTimeout(renderGallery,200);
+    } else if(item.type.startsWith('video/')||item.type.startsWith('audio/')){
+      openPlayerApp();
+      setTimeout(()=>{
+        const p = document.getElementById('playerArea');
+        p.innerHTML='';
+        const media = item.type.startsWith('video/')? document.createElement('video'):document.createElement('audio');
+        media.controls=true;
+        media.src = item.data;
+        media.style.width='100%';
+        p.appendChild(media);
+      },250);
+    } else if(item.type.startsWith('text') || name.toLowerCase().endsWith('.txt')){
+      openNotepadApp();
+      setTimeout(()=>{
+        document.getElementById('noteName').value = item.name;
+        document.getElementById('noteArea').value = item.data;
+      },200);
+    } else alert('Tipo não suportado: '+item.type);
+  }
+
+  // botões de upload e limpar
+  saveBtn.addEventListener('click', async ()=>{
+    const files = picker.files;
+    if(!files || files.length===0) return alert('Selecione arquivos');
+    for(const f of files){
+      const name = prompt('Nome para salvar no Aurora:', f.name) || f.name;
+      const data = await fileToDataURL(f);
+      await putFile(name,f.type,data);
+    }
+    alert('Salvo');
+    refreshFiles();
+  });
+
+  clearBtn.addEventListener('click', async ()=>{
+    if(confirm('Apagar todos os arquivos salvos?')){
+      await clearAll();
+      refreshFiles();
+    }
+  });
+
+  refreshFiles();
+}
+
+
+/* Player */
+function openPlayerApp(){
+  if(windows['player'] && windows['player'].el){ 
+    windows['player'].el.style.display='flex'; 
+    windows['player'].el.style.zIndex=++z; 
+    return; 
+  }
+  const wrapper = document.createElement('div'); 
+  wrapper.innerHTML = `<div class="win" data-app="player">
+    <div class="title">
+      <div class="title-text">Player</div>
+      <div class="controls">
+        <div class="btn" data-action="min">🗕</div>
+        <div class="btn" data-action="max">⬜</div>
+        <div class="btn" data-action="close">✖</div>
+      </div>
+    </div>
+    <div class="content">
+      <input type="file" id="pickerMedia"><button id="saveMedia">Salvar</button>
+      <div id="playerArea"></div>
+    </div>
+  </div>`;
+  const win = wrapper.firstElementChild; 
+  win.style.left='240px'; win.style.top='160px'; win.style.zIndex = ++z; 
+  document.body.appendChild(win);
+
+  // Controls
+  win.querySelectorAll('.btn').forEach(b=> b.addEventListener('click',(ev)=>{
+    const a=b.getAttribute('data-action'); 
+    if(a==='min') win.style.display='none'; 
+    else if(a==='close'){ win.remove(); if(windows['player'] && windows['player'].task){ windows['player'].task.remove(); delete windows['player']; } } 
+    else if(a==='max') toggleMax(win); 
+  }));
+
+  const tbtn=document.createElement('div'); tbtn.className='task-mini'; tbtn.textContent='Player'; 
+  tbtn.addEventListener('click', ()=>{ if(win.style.display==='none') win.style.display='flex'; win.style.zIndex=++z; }); 
+  tasklist.appendChild(tbtn);
+  windows['player'] = { el: win, task: tbtn };
+
+  const picker = win.querySelector('#pickerMedia'); 
+  const btnSave = win.querySelector('#saveMedia'); 
+  const area = win.querySelector('#playerArea');
+
+  picker.addEventListener('change', ()=>{ 
+    const f = picker.files[0]; 
+    if(!f) return; 
+    const url = URL.createObjectURL(f); 
+    area.innerHTML=''; 
+    if(f.type.startsWith('video/')){ const v=document.createElement('video'); v.controls=true; v.src=url; v.style.width='100%'; area.appendChild(v);} 
+    else if(f.type.startsWith('audio/')){ const a=document.createElement('audio'); a.controls=true; a.src=url; area.appendChild(a);} 
+    else if(f.type.startsWith('image/')){ const i=document.createElement('img'); i.src=url; i.style.maxWidth='100%'; area.appendChild(i);} 
+    else area.textContent='Tipo não suportado'; 
+  });
+
+  btnSave.addEventListener('click', async ()=>{
+    const f = picker.files[0]; 
+    if(!f) return alert('Selecione um arquivo primeiro'); 
+    if(!confirm('Salvar no Aurora? Arquivos grandes ocupam espaço.')) return; 
+    const name = prompt('Nome para salvar:', f.name)||f.name; 
+    const data = await fileToDataURL(f); 
+    await putFile(name,f.type,data); 
+    alert('Salvo: '+name);
+  });
+}
+
+/* Notepad */
+function openNotepadApp(){
+  if(windows['notepad'] && windows['notepad'].el){ 
+    windows['notepad'].el.style.display='flex'; 
+    windows['notepad'].el.style.zIndex=++z; 
+    return; 
+  }
+  const wrapper = document.createElement('div'); 
+  wrapper.innerHTML = `<div class="win" data-app="notepad">
+    <div class="title">
+      <div class="title-text">Notepad</div>
+      <div class="controls">
+        <div class="btn" data-action="min">🗕</div>
+        <div class="btn" data-action="max">⬜</div>
+        <div class="btn" data-action="close">✖</div>
+      </div>
+    </div>
+    <div class="content">
+      <input id="noteName" placeholder="Nome da nota">
+      <textarea id="noteArea" style="width:100%;height:100px;"></textarea>
+      <button id="saveNote">Salvar</button>
+      <button id="loadNote">Carregar</button>
+    </div>
+  </div>`;
+  const win = wrapper.firstElementChild; 
+  win.style.left='260px'; win.style.top='180px'; win.style.zIndex = ++z; 
+  document.body.appendChild(win);
+
+  win.querySelectorAll('.btn').forEach(b=> b.addEventListener('click',(ev)=>{
+    const a=b.getAttribute('data-action'); 
+    if(a==='min') win.style.display='none'; 
+    else if(a==='close'){ win.remove(); if(windows['notepad'] && windows['notepad'].task){ windows['notepad'].task.remove(); delete windows['notepad']; } } 
+    else if(a==='max') toggleMax(win); 
+  }));
+
+  const tbtn=document.createElement('div'); tbtn.className='task-mini'; tbtn.textContent='Notepad'; 
+  tbtn.addEventListener('click', ()=>{ if(win.style.display==='none') win.style.display='flex'; win.style.zIndex=++z; }); 
+  tasklist.appendChild(tbtn);
+  windows['notepad'] = { el: win, task: tbtn };
+
+  const saveBtn = win.querySelector('#saveNote'); 
+  const loadBtn = win.querySelector('#loadNote'); 
+  const nameIn = win.querySelector('#noteName'); 
+  const area = win.querySelector('#noteArea');
+
+  saveBtn.addEventListener('click', async ()=>{ 
+    const name = nameIn.value || ('nota-'+Date.now()+'.txt'); 
+    await putFile(name,'text/plain',area.value); 
+    alert('Nota salva: '+name); 
+  });
+
+  loadBtn.addEventListener('click', async ()=>{ 
+    const name = prompt('Nome da nota para carregar:'); 
+    if(!name) return; 
+    const it = await getOne(name); 
+    if(!it) return alert('Não encontrado'); 
+    nameIn.value=it.name; 
+    area.value=it.data; 
+  });
+}
+
+/* Browser */
+function openBrowserApp(){
+  if(windows['browser'] && windows['browser'].el){ 
+    windows['browser'].el.style.display='flex'; 
+    windows['browser'].el.style.zIndex=++z; 
+    return; 
+  }
+  const wrapper = document.createElement('div'); 
+  wrapper.innerHTML = `<div class="win" data-app="browser" style="display:flex;flex-direction:column;height:300px;width:400px;">
+    <div class="title">
+      <div class="title-text">Browser</div>
+      <div class="controls">
+        <div class="btn" data-action="min">🗕</div>
+        <div class="btn" data-action="max">⬜</div>
+        <div class="btn" data-action="close">✖</div>
+      </div>
+    </div>
+    <div class="content" style="flex:1; display:flex; flex-direction:column;">
+      <div style="display:flex;">
+        <input id="urlInput" placeholder="https://">
+        <button id="btnGo">Ir</button>
+      </div>
+      <iframe id="browserFrame" style="flex:1;width:100%;border:none;"></iframe>
+    </div>
+  </div>`;
+  
+  const win = wrapper.firstElementChild; 
+  win.style.left='280px'; 
+  win.style.top='200px'; 
+  win.style.zIndex = ++z; 
+  document.body.appendChild(win);
+
+  // Controls
+  win.querySelectorAll('.btn').forEach(b=> b.addEventListener('click',(ev)=>{
+    const a=b.getAttribute('data-action'); 
+    if(a==='min') win.style.display='none'; 
+    else if(a==='close'){ win.remove(); if(windows['browser'] && windows['browser'].task){ windows['browser'].task.remove(); delete windows['browser']; } } 
+    else if(a==='max') toggleMax(win); 
+  }));
+
+  const tbtn=document.createElement('div'); 
+  tbtn.className='task-mini'; 
+  tbtn.textContent='Browser'; 
+  tbtn.addEventListener('click', ()=>{ if(win.style.display==='none') win.style.display='flex'; win.style.zIndex=++z; }); 
+  tasklist.appendChild(tbtn);
+  windows['browser'] = { el: win, task: tbtn };
+
+  const input = win.querySelector('#urlInput'); 
+  const btn = win.querySelector('#btnGo'); 
+  const frame = win.querySelector('#browserFrame');
+
+  btn.addEventListener('click', ()=>{ 
+    let u = input.value.trim(); 
+    if(!/^https?:\/\//.test(u)) u = 'https://' + u; 
+    frame.src = u; 
+  });
+}
+
+
+/* Terminal */
+function openTerminalApp(){
+  if(windows['terminal'] && windows['terminal'].el){ 
+    windows['terminal'].el.style.display='flex'; 
+    windows['terminal'].el.style.zIndex=++z; 
+    return; 
+  }
+  const wrapper = document.createElement('div'); 
+  wrapper.innerHTML = `<div class="win" data-app="terminal">
+    <div class="title">
+      <div class="title-text">Terminal</div>
+      <div class="controls">
+        <div class="btn" data-action="min">🗕</div>
+        <div class="btn" data-action="max">⬜</div>
+        <div class="btn" data-action="close">✖</div>
+      </div>
+    </div>
+    <div class="content">
+      <div id="termOut" style="height:120px;overflow:auto;background:#000;color:#fff;padding:4px;font-family:monospace;font-size:12px;"></div>
+      <input id="termIn" style="width:100%;box-sizing:border-box;" placeholder="Digite comando">
+    </div>
+  </div>`;
+  const win = wrapper.firstElementChild; 
+  win.style.left='300px'; win.style.top='220px'; win.style.zIndex = ++z; 
+  document.body.appendChild(win);
+
+  win.querySelectorAll('.btn').forEach(b=> b.addEventListener('click',(ev)=>{
+    const a=b.getAttribute('data-action'); 
+    if(a==='min') win.style.display='none'; 
+    else if(a==='close'){ win.remove(); if(windows['terminal'] && windows['terminal'].task){ windows['terminal'].task.remove(); delete windows['terminal']; } } 
+    else if(a==='max') toggleMax(win); 
+  }));
+
+  const tbtn=document.createElement('div'); tbtn.className='task-mini'; tbtn.textContent='Terminal'; 
+  tbtn.addEventListener('click', ()=>{ if(win.style.display==='none') win.style.display='flex'; win.style.zIndex=++z; }); 
+  tasklist.appendChild(tbtn);
+  windows['terminal'] = { el: win, task: tbtn };
+
+  const out = win.querySelector('#termOut'); 
+  const input = win.querySelector('#termIn');
+  out.innerHTML = '<div style="opacity:.8">Bem-vindo ao Terminal Aurora. Digite "help".</div>';
+
+  input.addEventListener('keydown', async (e)=>{ 
+    if(e.key==='Enter'){ 
+      const cmd = input.value.trim(); 
+      input.value=''; 
+      out.innerHTML += `<div style="color:#8df0ff;">$ ${cmd}</div>`; 
+      await handleCmd(cmd, out); 
+      out.scrollTop = out.scrollHeight; 
+    }
+  });
+}
+
+
+/* Gallery */
+function openGalleryApp(){ // create if not exists quickly
+  if(windows['gallery'] && windows['gallery'].el){ windows['gallery'].el.style.display='flex'; windows['gallery'].el.style.zIndex=++z; renderGallery(); return; }
+  const tpl = document.getElementById('tmpl-files'); // reuse files template but create real gallery window separately for clarity
+  const wrapper = document.createElement('div'); wrapper.innerHTML = `<div class="win" data-app="gallery"><div class="title"><div class="title-text">Galeria</div><div class="controls"><div class="btn" data-action="min">🗕</div><div class="btn" data-action="max">⬜</div><div class="btn" data-action="close">✖</div></div></div><div class="content"><div id="galleryGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px"></div></div></div>`; const win = wrapper.firstElementChild; win.style.left='220px'; win.style.top='140px'; win.style.zIndex = ++z; document.body.appendChild(win);
+  // wire controls and task
+  win.querySelectorAll('.btn').forEach(b=> b.addEventListener('click',(ev)=>{ const a=b.getAttribute('data-action'); if(a==='min') win.style.display='none'; else if(a==='close'){ win.remove(); if(windows['gallery'] && windows['gallery'].task){ windows['gallery'].task.remove(); delete windows['gallery']; } } else if(a==='max') toggleMax(win); }));
+  const tbtn=document.createElement('div'); tbtn.className='task-mini'; tbtn.textContent='Galeria'; tbtn.addEventListener('click', ()=>{ if(win.style.display==='none') win.style.display='flex'; win.style.zIndex=++z; }); tasklist.appendChild(tbtn);
+  windows['gallery'] = { el: win, task: tbtn };
+  renderGallery();
+}
+async function renderGallery(){
+  const win = windows['gallery'] && windows['gallery'].el; if(!win) return;
+  const grid = win.querySelector('#galleryGrid'); grid.innerHTML = ''; const all = await getAll();
+  all.filter(i=> i.type && i.type.startsWith('image/')).forEach(m=>{ const wrap=document.createElement('div'); wrap.style.border='1px solid rgba(0,0,0,0.06)'; const img=document.createElement('img'); img.src = m.data; img.style.width='100%'; img.style.height='120px'; img.style.objectFit='cover'; wrap.appendChild(img); wrap.title = m.name; grid.appendChild(wrap); });
+}
+    
+/* Calculator */
+function openCalcApp(){
+  if(windows['calc'] && windows['calc'].el){ 
+    windows['calc'].el.style.display='flex'; 
+    windows['calc'].el.style.zIndex=++z; 
+    return; 
+  }
+  const wrapper = document.createElement('div'); 
+  wrapper.innerHTML = `<div class="win" data-app="calc">
+    <div class="title">
+      <div class="title-text">Calculadora</div>
+      <div class="controls">
+        <div class="btn" data-action="min">🗕</div>
+        <div class="btn" data-action="max">⬜</div>
+        <div class="btn" data-action="close">✖</div>
+      </div>
+    </div>
+    <div class="content">
+      <input type="text" id="calcDisplay" readonly style="width:100%;margin-bottom:8px;text-align:right;">
+      <div id="calcButtons">
+        <div class="cbtn">7</div><div class="cbtn">8</div><div class="cbtn">9</div><div class="cbtn">/</div>
+        <div class="cbtn">4</div><div class="cbtn">5</div><div class="cbtn">6</div><div class="cbtn">*</div>
+        <div class="cbtn">1</div><div class="cbtn">2</div><div class="cbtn">3</div><div class="cbtn">-</div>
+        <div class="cbtn">0</div><div class="cbtn">.</div><div id="calcEq">=</div><div class="cbtn">+</div>
+      </div>
+    </div>
+  </div>`;
+  const win = wrapper.firstElementChild;
+  win.style.left='240px';
+  win.style.top='180px';
+  win.style.zIndex = ++z;
+  document.body.appendChild(win);
+
+  // wire controls
+  win.querySelectorAll('.btn').forEach(b=> b.addEventListener('click',(ev)=>{ 
+    const a=b.getAttribute('data-action'); 
+    if(a==='min') win.style.display='none'; 
+    else if(a==='close'){ win.remove(); if(windows['calc'] && windows['calc'].task){ windows['calc'].task.remove(); delete windows['calc']; } } 
+    else if(a==='max') toggleMax(win); 
+  }));
+
+  const tbtn=document.createElement('div'); tbtn.className='task-mini'; tbtn.textContent='Calculadora'; 
+  tbtn.addEventListener('click', ()=>{ if(win.style.display==='none') win.style.display='flex'; win.style.zIndex=++z; }); 
+  tasklist.appendChild(tbtn); 
+  windows['calc'] = { el: win, task: tbtn };
+
+  // wire calculator logic
+  const display = win.querySelector('#calcDisplay'); 
+  let expr='';
+  win.querySelectorAll('.cbtn').forEach(b=> b.addEventListener('click', ()=>{ expr += b.textContent; display.value = expr; }));
+  win.querySelector('#calcEq').addEventListener('click', ()=>{ 
+    try{ expr = String(eval(expr||'0')); display.value = expr; } 
+    catch(e){ display.value='Erro'; expr=''; } 
+  });
+}
+
+/* Personalize (wallpaper) */
+function openPersonalize(){
+  if(windows['personalize'] && windows['personalize'].el){ 
+    windows['personalize'].el.style.display='flex'; 
+    windows['personalize'].el.style.zIndex=++z; 
+    return; 
+  }
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = `<div class="win" data-app="personalize">
+    <div class="title">
+      <div class="title-text">Personalizar</div>
+      <div class="controls">
+        <div class="btn" data-action="min">🗕</div>
+        <div class="btn" data-action="max">⬜</div>
+        <div class="btn" data-action="close">✖</div>
+      </div>
+    </div>
+    <div class="content">
+      <input type="file" id="wallPicker"><br><br>
+      <button id="setWall">Definir Papel</button>
+      <button id="resetWall">Restaurar Papel</button><br><br>
+      <label><input type="checkbox" id="reduceAnim"> Reduzir Animações</label><br><br>
+      <button id="clearAllDB">Apagar Tudo</button>
+    </div>
+  </div>`;
+  const win = wrapper.firstElementChild;
+  win.style.left='260px';
+  win.style.top='200px';
+  win.style.zIndex = ++z;
+  document.body.appendChild(win);
+
+  // wire controls
+  win.querySelectorAll('.btn').forEach(b=> b.addEventListener('click',(ev)=>{ 
+    const a=b.getAttribute('data-action'); 
+    if(a==='min') win.style.display='none'; 
+    else if(a==='close'){ win.remove(); if(windows['personalize'] && windows['personalize'].task){ windows['personalize'].task.remove(); delete windows['personalize']; } } 
+    else if(a==='max') toggleMax(win); 
+  }));
+  const tbtn=document.createElement('div'); tbtn.className='task-mini'; tbtn.textContent='Personalizar'; 
+  tbtn.addEventListener('click', ()=>{ if(win.style.display==='none') win.style.display='flex'; win.style.zIndex=++z; }); 
+  tasklist.appendChild(tbtn); 
+  windows['personalize'] = { el: win, task: tbtn };
+
+  // wire personalize logic
+  const picker = win.querySelector('#wallPicker'); 
+  const setBtn = win.querySelector('#setWall'); 
+  const reset = win.querySelector('#resetWall'); 
+  const reduce = win.querySelector('#reduceAnim'); 
+  const clearBtn = win.querySelector('#clearAllDB');
+
+  reduce.checked = reduceAnimations;
+  reduce.addEventListener('change', ()=>{ reduceAnimations = reduce.checked; });
+
+  setBtn.addEventListener('click', async ()=>{
+    const f = picker.files[0]; 
+    if(!f) return alert('Selecione uma imagem'); 
+    const data = await fileToDataURL(f); 
+    await putFile('__wallpaper__','image/png',data); 
+    wallpaperEl.style.backgroundImage = `url("${data}")`; 
+    alert('Papel salvo');
+  });
+
+  reset.addEventListener('click', async ()=>{
+    await delOne('__wallpaper__'); 
+    wallpaperEl.style.backgroundImage = defaultWall(); 
+    alert('Restaurado');
+  });
+
+  clearBtn.addEventListener('click', async ()=>{
+    if(confirm('Apagar TODO conteúdo salvo (arquivos e papéis)?')){
+      await clearAll(); 
+      alert('Banco limpo');
+    }
+  });
+}
+
+/* Snake (simple) */
+function openSnake(){
+  if(windows['snake'] && windows['snake'].el){ 
+    windows['snake'].el.style.display='flex'; 
+    windows['snake'].el.style.zIndex=++z; 
+    return; 
+  }
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = `<div class="win" data-app="snake">
+    <div class="title">
+      <div class="title-text">Snake</div>
+      <div class="controls">
+        <div class="btn" data-action="min">🗕</div>
+        <div class="btn" data-action="max">⬜</div>
+        <div class="btn" data-action="close">✖</div>
+      </div>
+    </div>
+    <div class="content">
+      <canvas id="snakeCanvas" width="320" height="240" style="background:#fff;display:block;margin-bottom:8px;"></canvas>
+      <button id="snakeStart">Iniciar</button>
+      <button id="snakeStop">Parar</button>
+    </div>
+  </div>`;
+  const win = wrapper.firstElementChild;
+  win.style.left='280px';
+  win.style.top='220px';
+  win.style.zIndex = ++z;
+  document.body.appendChild(win);
+
+  // wire controls
+  win.querySelectorAll('.btn').forEach(b=> b.addEventListener('click',(ev)=>{ 
+    const a=b.getAttribute('data-action'); 
+    if(a==='min') win.style.display='none'; 
+    else if(a==='close'){ win.remove(); if(windows['snake'] && windows['snake'].task){ windows['snake'].task.remove(); delete windows['snake']; } } 
+    else if(a==='max') toggleMax(win); 
+  }));
+  const tbtn=document.createElement('div'); tbtn.className='task-mini'; tbtn.textContent='Snake'; 
+  tbtn.addEventListener('click', ()=>{ if(win.style.display==='none') win.style.display='flex'; win.style.zIndex=++z; }); 
+  tasklist.appendChild(tbtn); 
+  windows['snake'] = { el: win, task: tbtn };
+
+  // snake logic
+  const canvas = win.querySelector('#snakeCanvas'); 
+  const startBtn = win.querySelector('#snakeStart'); 
+  const stopBtn = win.querySelector('#snakeStop'); 
+  const ctx=canvas.getContext('2d');
+  let timer=null, dir='right', snake=[{x:5,y:5},{x:4,y:5},{x:3,y:5}], food={x:8,y:6};
+
+  function draw(){
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); 
+    ctx.fillStyle='#0077aa'; snake.forEach(s=> ctx.fillRect(s.x*20+1,s.y*20+1,18,18)); 
+    ctx.fillStyle='#cc0000'; ctx.fillRect(food.x*20+1,food.y*20+1,18,18);
+  }
+
+  function step(){
+    const head={...snake[0]};
+    if(dir==='right') head.x++;
+    if(dir==='left') head.x--;
+    if(dir==='up') head.y--;
+    if(dir==='down') head.y++;
+    head.x=(head.x+16)%16; head.y=(head.y+12)%12;
+    snake.unshift(head);
+    if(head.x===food.x && head.y===food.y) placeFood();
+    else snake.pop();
+    draw();
+  }
+
+  function placeFood(){ food={x:Math.floor(Math.random()*16),y:Math.floor(Math.random()*12)}; }
+
+  startBtn.onclick = ()=>{ if(timer) clearInterval(timer); placeFood(); timer=setInterval(step,140); };
+  stopBtn.onclick = ()=>{ if(timer) clearInterval(timer); timer=null; };
+
+  document.addEventListener('keydown', e=>{
+    if(win.style.display!=='none'){
+      if(e.key.includes('Arrow')){ 
+        e.preventDefault(); 
+        if(e.key==='ArrowUp') dir='up'; 
+        if(e.key==='ArrowDown') dir='down'; 
+        if(e.key==='ArrowLeft') dir='left'; 
+        if(e.key==='ArrowRight') dir='right'; 
+      } 
+    }
+  });
+}
+
+
+/* ---------- Helpers ---------- */
+function fileToDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload = ()=> res(r.result); r.onerror = rej; r.readAsDataURL(file); }); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+/* ---------- Start menu & pinned buttons ---------- */
+document.getElementById('startBtn').addEventListener('click', ()=>{ startMenu.style.display = startMenu.style.display==='flex' ? 'none' : 'flex'; });
+// start menu launching
+document.querySelectorAll('#startMenu .startItem').forEach(it=> it.addEventListener('click', (e)=>{ const a = e.currentTarget.getAttribute('data-launch'); startMenu.style.display='none'; launchApp(a); }));
+// pinned
+document.querySelectorAll('.pinned-btn').forEach(b=> b.addEventListener('click', ()=>{ const a=b.getAttribute('data-app'); launchApp(a); }));
+// desktop icons
+document.querySelectorAll('.icon').forEach(ic=>{ ic.addEventListener('click', ()=>{ const app = ic.getAttribute('data-app'); launchApp(app); }); });
+
+/* ---------- App launcher ---------- */
+function launchApp(id){
+  switch(id){
+    case 'files': openFilesApp(); break;
+    case 'player': openPlayerApp(); break;
+    case 'gallery': openGalleryApp(); break;
+    case 'notepad': openNotepadApp(); break;
+    case 'browser': openBrowserApp(); break;
+    case 'terminal': openTerminalApp(); break;
+    case 'calc': openCalcApp(); break;
+    case 'personalize': openPersonalize(); break;
+    case 'snake': openSnake(); break;
+    default: alert('App não implementado: '+id); break;
+  }
+}
+
+/* ---------- Small UI features ---------- */
+document.getElementById('animToggle').addEventListener('click', ()=>{ reduceAnimations = !reduceAnimations; document.body.style.transition = reduceAnimations ? 'none' : ''; alert('Animações ' + (reduceAnimations? 'reduzidas' : 'ativadas')); });
+document.getElementById('themeToggle').addEventListener('click', ()=>{ // simple invert
+  if(document.documentElement.style.getPropertyValue('--accent')==='#7bd1ff'){ document.documentElement.style.setProperty('--accent','#ffcc66'); }
+  else document.documentElement.style.setProperty('--accent','#7bd1ff');
+});
+
+/* ---------- Utility: open on double click and single click handling ---------- */
+let clickLock = null;
+document.querySelectorAll('.icon').forEach(ic=>{
+  ic.addEventListener('click', (e)=>{ // single click: select (future)
+    clearTimeout(clickLock);
+    clickLock = setTimeout(()=>{ /* single click placeholder */ }, 220);
+  });
+  ic.addEventListener('dblclick', ()=>{ clearTimeout(clickLock); const app = ic.getAttribute('data-app'); launchApp(app); });
+});
+
+/* ---------- load wallpaper from DB on start (done above) ---------- */
+/* ---------- storage event reacts ---------- */
+window.addEventListener('storage', ()=>{ /* no-op fallback */ });
+
+/* ---------- Utility: open some nice defaults ---------- */
+function openDefaultApps(){ /* nothing auto */ }
+
+/* ---------- Misc helpers for user actions ---------- */
+async function deleteAllData(){ if(confirm('Apagar todo o banco de dados Aurora?')){ await clearAll(); alert('OK apagado'); } }
+
+/* ---------- Expose some functions for debugging in console ---------- */
+window.Aurora = { putFile, getAll, getOne, delOne, openFilesApp, openPlayerApp, openNotepadApp };
+
+/* ---------- End of script ---------- */
+</script>
+</body>
+</html>
